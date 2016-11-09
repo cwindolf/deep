@@ -10,12 +10,12 @@ class CharLSTM():
 
         # Set up 2-layer LSTM
 
-        # Use seq2seq.rnn_decoder instead of dynamic_rnn to run the cell
+        # Use seq2seq.rnn_decoder instead of dynamic_rnn to run the cells
 
         # softmax for logits
 
         # seq2seq loss by example
-
+`
         # define trainer
 
         pass
