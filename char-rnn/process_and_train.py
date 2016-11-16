@@ -11,11 +11,12 @@ import os
 DATA_DIR = './data/'
 
 # Model training params
-NUM_EPOCHS = 20
-EMBED_SIZE = 200
-LSTM_SIZE  = 200
+NUM_EPOCHS = 2
+EMBED_SIZE = 64
+LSTM_SIZE  = 256
 BATCH_SIZE = 20
 SEQ_LENGTH = 20
+LEARN_RATE = 1e-4
 
 # *************************************************************************** #
 # Data processing
@@ -73,11 +74,11 @@ def batch_windows(char_to_index):
     x_gen, y_gen = all_chars(), all_chars()
     next(y_gen)
     for x_char, y_char in zip(x_gen, y_gen):
-        x_window.append(indexer[x_char])
-        y_window.append(indexer[y_char])
+        x_window.append(char_to_index[x_char])
+        y_window.append(char_to_index[y_char])
         steps += 1
         # done with this window, add it to batch and restart
-        if steps >= NUM_STEPS:
+        if steps >= SEQ_LENGTH:
             x_batch.append(x_window)
             y_batch.append(y_window)
             windows += 1
@@ -95,14 +96,18 @@ if __name__ == '__main__':
     # Process data
 
     char_to_index, index_to_char, vocab_size = index_corpus()
+    batches = batch_windows(char_to_index)
+
 
     # *********************************************************************** #
     # Instantiate and train the model
 
-    model = CharLSTM(EMBED_SIZE, LSTM_SIZE, vocab_size, BATCH_SIZE, SEQ_LENGTH)
+    model = CharLSTM(EMBED_SIZE, LSTM_SIZE, vocab_size,
+                     BATCH_SIZE, SEQ_LENGTH, LEARN_RATE)
 
     with tf.Session() as sess:
-        model.train(sess, batch_windows(char_to_index), NUM_EPOCHS)
+        sess.run(model.init_op)
+        model.train(sess, batches, NUM_EPOCHS)
         sample = model.sample(sess, 200, 'Providence is ',
                               char_to_index, index_to_char)
 

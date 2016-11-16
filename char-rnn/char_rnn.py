@@ -2,6 +2,7 @@ from __future__ import print_function, division
 import tensorflow as tf
 from tensorflow.python.ops.nn import rnn_cell, dynamic_rnn, softmax
 import numpy as np
+from tqdm import tqdm
 
 
 # *************************************************************************** #
@@ -17,7 +18,8 @@ def weight(shape):
 class CharLSTM():
 
     def __init__(self, embed_size, lstm_size, vocab_size, \
-                 batch_size, seq_length, num_layers=2):
+                 batch_size, seq_length, learn_rate, \
+                 keep_prob=0.75, num_layers=2):
         '''
         Initialize a character-level multilayer LSTM language model.
         Arguments:
@@ -25,21 +27,27 @@ class CharLSTM():
             @vocab_size: number of things in vocabulary (characters!)
             @batch_size: sequences per training batch
             @seq_length: length of sequences in each training batch
+            @learn_rate: AdamOptimizer step size
+            @keep_prob:  1 - dropout probability
             @num_layers: number of LSTM cells to stack
         '''
         # Store parameters that we'll need later
         self.vocab_size = vocab_size
         self.seq_length = seq_length
+        self.kp = keep_prob
 
         # Placeholders for input/output and dropout
-        self.inputs    = tf.placeholder(tf.int32, shape=[batch_size, seq_length])
-        self.targets   = tf.placeholder(tf.int32, shape=[batch_size, seq_length])
+        # self.inputs    = tf.placeholder(tf.int32, shape=[batch_size, seq_length])
+        # self.targets   = tf.placeholder(tf.int32, shape=[batch_size, seq_length])
+        self.inputs    = tf.placeholder(tf.int32, shape=[None, None])
+        self.targets   = tf.placeholder(tf.int32, shape=[None, None])
         self.keep_prob = tf.placeholder(tf.float32)
 
         # Set up embeddings
         E = weight([vocab_size, embed_size])
         embeddings = tf.nn.embedding_lookup(E, self.inputs)
 
+        # TODO: dropout.
         # Set up 2-layer LSTM
         cell = rnn_cell.BasicLSTMCell(lstm_size)
         self.cell = cell = rnn_cell.MultiRNNCell([cell] * num_layers,
@@ -56,21 +64,23 @@ class CharLSTM():
         ff_weights = weight((lstm_size, vocab_size))
         ff_biases = weight((vocab_size,))
         logits = tf.add(ff_biases,
-                        tf.matmul(reshaped_outputs, ff_biases))
+                        tf.matmul(reshaped_outputs, ff_weights))
         self.probs = softmax(logits)
 
         # softmax and loss
         log_perps = tf.nn.seq2seq.sequence_loss_by_example(
                                             [logits],
-                                            [tf.reshape(targets, [-1])],
+                                            [tf.reshape(self.targets, [-1])],
                                             [tf.ones([batch_size * seq_length])])
         self.loss = tf.reduce_sum(log_perps) / batch_size
 
         # define trainer
-        self.train_op = tf.train.AdamOptimizer(LEARN_RATE).minimize(loss)
+        self.train_op = tf.train.AdamOptimizer(learn_rate).minimize(self.loss)
+
+        self.init_op = tf.initialize_all_variables()
 
 
-    def train(sess, batches, num_epochs):
+    def train(self, sess, batches, num_epochs):
         '''
         Train the model. Prints perplexity once per epoch. May eventually
         save model checkpoints, if we get around to it.
@@ -89,16 +99,16 @@ class CharLSTM():
             print('    Epoch %d:' % e)
             epoch_perplexity = 0.0
             this_state = sess.run(self.init_state)
-            for i, t in batches:
+            for i, t in tqdm(batches):
                 batch_p, this_state, _ = sess.run([self.loss, self.state, self.train_op],
                                                   feed_dict={ self.inputs: i,
                                                               self.targets: t,
-                                                              self.keep_prob: 0.5 })
+                                                              self.keep_prob: self.kp })
                 epoch_perplexity += batch_p
             print('    Epoch %d Perplexity: %0.2f' % (e, epoch_perplexity / self.seq_length))
 
 
-    def sample(sess, n, seed, char_to_index, index_to_char):
+    def sample(self, sess, n, seed, char_to_index, index_to_char):
         '''
         Sample likely sentences starting with @seed from the language model.
         Arguments:
@@ -108,7 +118,7 @@ class CharLSTM():
             @char_to_index: dict from characters -> index numbers
             @index_to_char: dict from index numbers -> characters
         Returns:
-            a sampled string of length `n`
+            a sampled string of length `n` + len(`seed`)
         '''
         # Make sure seed ends in a space.
         if not seed[-1] == ' ':
@@ -116,16 +126,17 @@ class CharLSTM():
         # Prime the LSTM layers by running the seed through
         # (except for the space at the end)
         this_state = sess.run(self.init_state)
-        for char in prime[:-1]:
+        for char in seed[:-1]:
             # QUESTION: why are they feeding in 1 at a time?
-            i = np.full((1, 1), vocab[char])
-            feed = { self.inputs: i, self.init_state: this_state }
+            #           TF does not like this coming in like this. very bad.
+            i = np.full((1, 1), char_to_index[char])
+            feed = { self.inputs: i, self.init_state: this_state, self.keep_prob: 1.0 }
             this_state = sess.run(self.state, feed_dict=feed)
         # Now, do the actual sampling
         poem, current_char = seed, seed[-1]
         for _ in range(n):
-            i = np.full((1, 1), vocab[current_char])
-            feed = { self.inputs: i, self.init_state: this_state }
+            i = np.full((1, 1), char_to_index[current_char], dtype=np.int32)
+            feed = { self.inputs: i, self.init_state: this_state, self.keep_prob: 1.0 }
             probs, this_state = sess.run([self.probs, self.state], feed_dict=feed)
             # might need p = probs[0]
             if current_char == ' ':
@@ -133,7 +144,7 @@ class CharLSTM():
             else:
                 sample = np.argmax(probs)
 
-            prediction = chars[sample]
+            prediction = index_to_char[sample]
             poem += prediction
             current_char = prediction
         return poem
