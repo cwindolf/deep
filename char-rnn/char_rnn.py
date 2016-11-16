@@ -18,6 +18,13 @@ class CharLSTM():
 
     def __init__(embed_size, lstm_size, vocab_size, batch_size, seq_length, num_layers=2):
         '''
+        Initialize a character-level multilayer LSTM language model.
+        Arguments:
+            @embed_size: dimensions of embedding space
+            @vocab_size: number of things in vocabulary (characters!)
+            @batch_size: sequences per training batch
+            @seq_length: length of sequences in each training batch
+            @num_layers: number of LSTM cells to stack
         '''
         # Store parameters that we'll need later
         self.vocab_size = vocab_size
@@ -64,10 +71,18 @@ class CharLSTM():
 
     def train(sess, batches, num_epochs):
         '''
+        Train the model. Prints perplexity once per epoch. May eventually
+        save model checkpoints, if we get around to it.
         Arguments:
-            batches:
-                [(input1, target1), (input2, target2), ...]
+            @sess:        an active tf.Session()
+            @batches:     an iterable of training windows. each one of the form:
+                          [(input1, target1), (input2, target2), ...]
+            @num_epochs:  number of times to run thru the `batches`
         '''
+        # if we're going to run thru multiple times, make sure it's not a generator.
+        if num_epochs > 1:
+            batches = list(batches)
+        # begin training
         print('Training!')
         for e in range(num_epochs):
             print('    Epoch %d:' % e)
@@ -84,19 +99,15 @@ class CharLSTM():
             print('    Epoch %d Perplexity: %0.2f' % (e, epoch_perplexity / self.seq_length))
 
 
-    def sample(sess, n, seed, vocab_index, chars):
+    def sample(sess, n, seed, char_to_index, index_to_char):
         '''
+        Sample likely sentences starting with @seed from the language model.
         Arguments:
-            sess:
-                active TF session
-            n:
-                length of seq to generate
-            seed:
-                primer for generated text
-            vocab_index:
-                dict from characters -> index numbers
-            chars:
-                dict from index numbers -> characters
+            @sess:          active tf.Session
+            @n:             length of seq to generate
+            @seed:          primer for generated text
+            @char_to_index: dict from characters -> index numbers
+            @index_to_char: dict from index numbers -> characters
         Returns:
             a sampled string of length `n`
         '''
