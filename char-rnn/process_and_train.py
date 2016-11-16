@@ -103,6 +103,10 @@ if __name__ == '__main__':
 
     with tf.Session() as sess:
         model.train(sess, batch_windows(char_to_index), NUM_EPOCHS)
+        sample = model.sample(sess, 200, 'Providence is ',
+                              char_to_index, index_to_char)
 
+    # *********************************************************************** #
+    # Test sample...
 
-
+    print(sample)
