@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 import tensorflow as tf
-from tensorflow.nn import rnn_cell, dynamic_rnn, softmax
+from tensorflow.python.ops.nn import rnn_cell, dynamic_rnn, softmax
 import numpy as np
 
 
@@ -16,7 +16,8 @@ def weight(shape):
 
 class CharLSTM():
 
-    def __init__(embed_size, lstm_size, vocab_size, batch_size, seq_length, num_layers=2):
+    def __init__(self, embed_size, lstm_size, vocab_size, \
+                 batch_size, seq_length, num_layers=2):
         '''
         Initialize a character-level multilayer LSTM language model.
         Arguments:
@@ -37,7 +38,7 @@ class CharLSTM():
 
         # Set up embeddings
         E = weight([vocab_size, embed_size])
-        embeddings = tf.nn.embedding_lookup(E, X)
+        embeddings = tf.nn.embedding_lookup(E, self.inputs)
 
         # Set up 2-layer LSTM
         cell = rnn_cell.BasicLSTMCell(lstm_size)
@@ -47,7 +48,7 @@ class CharLSTM():
 
         # Use dynamic_rnn to run the cells
         outputs, self.state = dynamic_rnn(cell, embeddings,
-                                     initial_state=self.init_state)
+                                          initial_state=self.init_state)
         reshaped_outputs = tf.reshape(outputs, 
                                      (batch_size * seq_length, lstm_size))
 
@@ -120,7 +121,7 @@ class CharLSTM():
         for char in prime[:-1]:
             # QUESTION: why are they feeding in 1 at a time?
             i = np.full((1, 1), vocab[char])
-            feed = { self.inputs: i, self.init_state = this_state }
+            feed = { self.inputs: i, self.init_state: this_state }
             this_state = sess.run(self.state, feed_dict=feed)
         # Now, do the actual sampling
         poem, current_char = seed, seed[-1]
