@@ -42,14 +42,14 @@ class CharLSTM():
 
         # Set up 2-layer LSTM
         cell = rnn_cell.BasicLSTMCell(lstm_size)
-        self.cell = cell = rnn_cell.MultiRNNCell([cell] * num_layers, 
+        self.cell = cell = rnn_cell.MultiRNNCell([cell] * num_layers,
                                                  state_is_tuple=True)
         self.init_state = cell.zero_state(batch_size, tf.float32)
 
         # Use dynamic_rnn to run the cells
         outputs, self.state = dynamic_rnn(cell, embeddings,
                                           initial_state=self.init_state)
-        reshaped_outputs = tf.reshape(outputs, 
+        reshaped_outputs = tf.reshape(outputs,
                                      (batch_size * seq_length, lstm_size))
 
         # final feedforward layer (model logits)
@@ -61,7 +61,7 @@ class CharLSTM():
 
         # softmax and loss
         log_perps = tf.nn.seq2seq.sequence_loss_by_example(
-                                            [logits], 
+                                            [logits],
                                             [tf.reshape(targets, [-1])],
                                             [tf.ones([batch_size * seq_length])])
         self.loss = tf.reduce_sum(log_perps) / batch_size
@@ -90,12 +90,10 @@ class CharLSTM():
             epoch_perplexity = 0.0
             this_state = sess.run(self.init_state)
             for i, t in batches:
-                batch_p, this_state, _ = sess.run([self.loss, self.state, self.train_op], 
-                                                  feed_dict={
-                                                    self.inputs: i,
-                                                    self.targets: t,
-                                                    self.keep_prob: 0.5
-                                                })
+                batch_p, this_state, _ = sess.run([self.loss, self.state, self.train_op],
+                                                  feed_dict={ self.inputs: i,
+                                                              self.targets: t,
+                                                              self.keep_prob: 0.5 })
                 epoch_perplexity += batch_p
             print('    Epoch %d Perplexity: %0.2f' % (e, epoch_perplexity / self.seq_length))
 
