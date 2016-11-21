@@ -37,46 +37,53 @@ class CharLSTM():
         self.kp = keep_prob
 
         # Placeholders for input/output and dropout
-        # self.inputs    = tf.placeholder(tf.int32, shape=[batch_size, seq_length])
-        # self.targets   = tf.placeholder(tf.int32, shape=[batch_size, seq_length])
-        self.inputs    = tf.placeholder(tf.int32, shape=[None, None])
-        self.targets   = tf.placeholder(tf.int32, shape=[None, None])
-        self.keep_prob = tf.placeholder(tf.float32)
+        self.train_inputs  = tf.placeholder(tf.int32, shape=[batch_size, seq_length])
+        self.train_targets = tf.placeholder(tf.int32, shape=[batch_size, seq_length])
+        self.sample_inputs = tf.placeholder(tf.int32, shape=[1, 1])
+        self.keep_prob     = tf.placeholder(tf.float32)
 
         # Set up embeddings
         E = weight([vocab_size, embed_size])
-        embeddings = tf.nn.embedding_lookup(E, self.inputs)
+        train_embeddings = tf.nn.embedding_lookup(E, self.train_inputs)
+        sample_embeddings = tf.nn.embedding_lookup(E, self.sample_inputs)
 
         # TODO: dropout.
-        # Set up 2-layer LSTM
-        cell = rnn_cell.BasicLSTMCell(lstm_size)
-        self.cell = cell = rnn_cell.MultiRNNCell([cell] * num_layers,
-                                                 state_is_tuple=True)
-        self.init_state = cell.zero_state(batch_size, tf.float32)
 
+        # Set up 2-layer LSTM
         # Use dynamic_rnn to run the cells
-        outputs, self.state = dynamic_rnn(cell, embeddings,
-                                          initial_state=self.init_state)
-        reshaped_outputs = tf.reshape(outputs,
-                                     (batch_size * seq_length, lstm_size))
+        with tf.variable_scope('lstm', reuse=True):
+            cell = rnn_cell.BasicLSTMCell(lstm_size)
+            self.cell = cell = rnn_cell.MultiRNNCell([cell] * num_layers,
+                                                     state_is_tuple=True)
+            self.train_init_state  = cell.zero_state(batch_size, tf.float32)
+            self.sample_init_state = cell.zero_state(1, tf.float32)
+            train_outputs, self.train_state   = dynamic_rnn(cell, train_embeddings,
+                                                            initial_state=self.train_init_state)
+            sample_outputs, self.sample_state = dynamic_rnn(cell, sample_embeddings,
+                                                            initial_state=self.sample_init_state)
+            reshaped_train_outputs  = tf.reshape(train_outputs,
+                                                (batch_size * seq_length, lstm_size))
+            reshaped_sample_outputs = tf.reshape(sample_outputs, (1, lstm_size))
 
         # final feedforward layer (model logits)
         ff_weights = weight((lstm_size, vocab_size))
         ff_biases = weight((vocab_size,))
-        logits = tf.add(ff_biases,
-                        tf.matmul(reshaped_outputs, ff_weights))
-        self.probs = softmax(logits)
+        train_logits = tf.add(ff_biases,
+                              tf.matmul(reshaped_train_outputs, ff_weights))
+        sample_logits = tf.add(ff_biases,
+                               tf.matmul(reshaped_sample_outputs, ff_weights))
+        self.probs = softmax(sample_logits)
 
         # softmax and loss
         log_perps = tf.nn.seq2seq.sequence_loss_by_example(
-                                            [logits],
-                                            [tf.reshape(self.targets, [-1])],
+                                            [train_logits],
+                                            [tf.reshape(self.train_targets, [-1])],
                                             [tf.ones([batch_size * seq_length])])
         self.loss = tf.reduce_sum(log_perps) / batch_size
 
         # define trainer
         self.train_op = tf.train.AdamOptimizer(learn_rate).minimize(self.loss)
-
+        # gotta run this!
         self.init_op = tf.initialize_all_variables()
 
 
@@ -98,11 +105,11 @@ class CharLSTM():
         for e in range(num_epochs):
             print('    Epoch %d:' % e)
             epoch_perplexity = 0.0
-            this_state = sess.run(self.init_state)
+            this_state = sess.run(self.train_init_state)
             for i, t in tqdm(batches):
-                batch_p, this_state, _ = sess.run([self.loss, self.state, self.train_op],
-                                                  feed_dict={ self.inputs: i,
-                                                              self.targets: t,
+                batch_p, this_state, _ = sess.run([self.loss, self.train_state, self.train_op],
+                                                  feed_dict={ self.train_inputs: i,
+                                                              self.train_targets: t,
                                                               self.keep_prob: self.kp })
                 epoch_perplexity += batch_p
             print('    Epoch %d Perplexity: %0.2f' % (e, epoch_perplexity / self.seq_length))
@@ -125,19 +132,19 @@ class CharLSTM():
             seed += ' '
         # Prime the LSTM layers by running the seed through
         # (except for the space at the end)
-        this_state = sess.run(self.init_state)
+        this_state = sess.run(self.sample_init_state)
         for char in seed[:-1]:
             # QUESTION: why are they feeding in 1 at a time?
             #           TF does not like this coming in like this. very bad.
             i = np.full((1, 1), char_to_index[char])
-            feed = { self.inputs: i, self.init_state: this_state, self.keep_prob: 1.0 }
+            feed = { self.sample_inputs: i, self.sample_init_state: this_state, self.keep_prob: 1.0 }
             this_state = sess.run(self.state, feed_dict=feed)
         # Now, do the actual sampling
         poem, current_char = seed, seed[-1]
         for _ in range(n):
             i = np.full((1, 1), char_to_index[current_char], dtype=np.int32)
-            feed = { self.inputs: i, self.init_state: this_state, self.keep_prob: 1.0 }
-            probs, this_state = sess.run([self.probs, self.state], feed_dict=feed)
+            feed = { self.sample_inputs: i, self.sample_init_state: this_state, self.keep_prob: 1.0 }
+            probs, this_state = sess.run([self.probs, self.sample_state], feed_dict=feed)
             # might need p = probs[0]
             if current_char == ' ':
                 sample = np.random.choice(self.vocab_size, p=probs)
