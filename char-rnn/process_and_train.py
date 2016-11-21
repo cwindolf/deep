@@ -1,17 +1,17 @@
 from __future__ import print_function
 from char_rnn import CharLSTM
 import tensorflow as tf
-import glob
-import os
+import glob, os
 
 
 # *************************************************************************** #
 # Constants
 
 DATA_DIR = './data/'
+MODEL_SAVE_DIR = './saved_models/'
 
 # Model training params
-NUM_EPOCHS = 2
+NUM_EPOCHS = 30
 EMBED_SIZE = 64
 LSTM_SIZE  = 256
 BATCH_SIZE = 20
@@ -108,10 +108,4 @@ if __name__ == '__main__':
     with tf.Session() as sess:
         sess.run(model.init_op)
         model.train(sess, batches, NUM_EPOCHS)
-        sample = model.sample(sess, 200, 'Providence is ',
-                              char_to_index, index_to_char)
-
-    # *********************************************************************** #
-    # Test sample...
-
-    print(sample)
+        model.save_to(sess, MODEL_SAVE_DIR)
