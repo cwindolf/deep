@@ -2,7 +2,6 @@ from __future__ import print_function, division
 import tensorflow as tf
 from tensorflow.python.ops.nn import rnn_cell, dynamic_rnn, softmax
 import numpy as np
-from tqdm import tqdm
 from os import path
 import pickle
 
@@ -22,7 +21,7 @@ class CharLSTM():
 
     def __init__(self, embed_size, lstm_size, vocab_size, \
                  batch_size, seq_length, learn_rate, \
-                 keep_prob=0.75, num_layers=2, name='char_lstm'):
+                 keep_prob=1.0, num_layers=2, name='char_lstm'):
         '''
         Initialize a character-level multilayer LSTM language model.
         Arguments:
@@ -35,24 +34,23 @@ class CharLSTM():
             @num_layers: number of LSTM cells to stack
         '''
         # store params
-        self.embed_size, self.lstm_size = embed_size, lstm_size
+        self.embed_size, self.lstm_size  = embed_size, lstm_size
         self.vocab_size, self.seq_length = vocab_size, seq_length
         self.batch_size, self.learn_rate = batch_size, learn_rate
-        self.kp, self.num_layers = keep_prob, num_layers
+        self.kp, self.num_layers         = keep_prob, num_layers
         self.name = name
 
         # Placeholders for input/output and dropout
         self.train_inputs  = tf.placeholder(tf.int32, shape=[batch_size, seq_length])
         self.train_targets = tf.placeholder(tf.int32, shape=[batch_size, seq_length])
         self.sample_inputs = tf.placeholder(tf.int32, shape=[1, 1])
-        self.keep_prob     = tf.placeholder(tf.float32)
 
         # Set up embeddings
         E = weight('embedding', [vocab_size, embed_size])
         train_embeddings = tf.nn.embedding_lookup(E, self.train_inputs, name='train_embeddings')
+        dropped_train_embeddings = (tf.nn.dropout(train_embeddings, self.kp) 
+                                    if self.kp < 1.0 else train_embeddings)
         sample_embeddings = tf.nn.embedding_lookup(E, self.sample_inputs, name='sample_embeddings')
-
-        # TODO: dropout.
 
         # Set up 2-layer LSTM
         # Use dynamic_rnn to run the cells
@@ -63,7 +61,7 @@ class CharLSTM():
             self.train_init_state = self.cell.zero_state(batch_size, tf.float32)
             self.sample_init_state = self.cell.zero_state(1, tf.float32)
 
-            train_outputs, self.train_state = dynamic_rnn(self.cell, train_embeddings,
+            train_outputs, self.train_state = dynamic_rnn(self.cell, dropped_train_embeddings,
                                                           initial_state=self.train_init_state)
             scope.reuse_variables()
             sample_outputs, self.sample_state = dynamic_rnn(self.cell, sample_embeddings,
@@ -95,32 +93,29 @@ class CharLSTM():
         self.saver = tf.train.Saver()
 
 
-    def train(self, sess, batches, num_epochs):
+    def train(self, sess, batches):
         '''
         Train the model. Prints perplexity once per epoch. May eventually
         save model checkpoints, if we get around to it.
+        Only does a single epoch, returns perplexity.
         Arguments:
             @sess:        an active tf.Session()
             @batches:     an iterable of training windows. each one of the form:
                           [(input1, target1), (input2, target2), ...]
-            @num_epochs:  number of times to run thru the `batches`
+        Returns:
+            this epoch's perplexity
         '''
         # if we're going to run thru multiple times, make sure it's not a generator.
-        if num_epochs > 1:
-            batches = list(batches)
         # begin training
-        print('Training!')
-        for e in range(num_epochs):
-            print('    Epoch %d:' % e)
-            epoch_perplexity = 0.0
-            this_state = sess.run(self.train_init_state)
-            for i, t in tqdm(batches):
-                batch_p, this_state, _ = sess.run([self.loss, self.train_state, self.train_op],
-                                                  feed_dict={ self.train_inputs: i,
-                                                              self.train_targets: t,
-                                                              self.keep_prob: self.kp })
-                epoch_perplexity += batch_p
-            print('    Epoch %d Perplexity: %0.2f' % (e, epoch_perplexity / self.seq_length))
+        epoch_perplexity = 0.0
+        this_state = sess.run(self.train_init_state)
+        for i, t in batches:
+            batch_p, this_state, _ = sess.run([self.loss, self.train_state, self.train_op],
+                                              feed_dict={ self.train_inputs: i,
+                                                          self.train_targets: t })
+            epoch_perplexity += batch_p
+        # return total epoch perlexity
+        return epoch_perplexity / self.seq_length
 
 
     def sample(self, sess, n, seed, char_to_index, index_to_char):
@@ -145,13 +140,13 @@ class CharLSTM():
             # QUESTION: why are they feeding in 1 at a time?
             #           TF does not like this coming in like this. very bad.
             i = np.full((1, 1), char_to_index[char], dtype=np.int32)
-            feed = { self.sample_inputs: i, self.sample_init_state: this_state, self.keep_prob: 1.0 }
+            feed = { self.sample_inputs: i, self.sample_init_state: this_state }
             this_state = sess.run(self.sample_state, feed_dict=feed)
         # Now, do the actual sampling
         poem, current_char = seed, seed[-1]
         for _ in range(n):
             i = np.full((1, 1), char_to_index[current_char], dtype=np.int32)
-            feed = { self.sample_inputs: i, self.sample_init_state: this_state, self.keep_prob: 1.0 }
+            feed = { self.sample_inputs: i, self.sample_init_state: this_state }
             probs, this_state = sess.run([self.probs, self.sample_state], feed_dict=feed)
             # might need p = probs[0]
             if current_char == ' ':

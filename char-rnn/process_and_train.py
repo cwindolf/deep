@@ -1,6 +1,14 @@
+'''
+Process the poems
+Train the model
+Save the model
+'''
 from __future__ import print_function
 from char_rnn import CharLSTM
 import tensorflow as tf
+from random import shuffle
+from tqdm import tqdm, trange
+from collections import deque
 import glob, os
 
 
@@ -11,12 +19,15 @@ DATA_DIR = './data/'
 MODEL_SAVE_DIR = './saved_models/'
 
 # Model training params
-NUM_EPOCHS = 30
+NUM_EPOCHS = 10
 EMBED_SIZE = 64
 LSTM_SIZE  = 256
 BATCH_SIZE = 20
-SEQ_LENGTH = 20
+SEQ_LENGTH = 50
 LEARN_RATE = 1e-4
+
+# Continuing to train old model?
+LOAD_FROM_SAVE = False
 
 # *************************************************************************** #
 # Data processing
@@ -29,17 +40,21 @@ def characters(filename):
     '''
     with open(filename, 'r') as file:
         for line in file:
-            yield from line
+            for char in line:
+                yield char
 
 
 def all_chars():
     '''
     Loop through all files in the whole `DATA_DIR`, yielding character
     by character.
+    Every call runs through poems in a random order.
     '''
-    for filename in glob.iglob(os.path.join(DATA_DIR, '*.txt')):
-        yield from characters(filename)
-
+    g = glob.glob(os.path.join(DATA_DIR, '*.txt'))
+    shuffle(g)
+    for filename in list(g):
+        for char in characters(filename):
+            yield char
 
 
 def index_corpus():
@@ -68,8 +83,8 @@ def batch_windows(char_to_index):
     Returns:
         generator of pairs of input and target batches
     '''
-    x_batch, x_window = [], []
-    y_batch, y_window = [], []
+    x_batch, x_window = deque([], BATCH_SIZE), []
+    y_batch, y_window = deque([], BATCH_SIZE), []
     windows, steps = 0, 0
     x_gen, y_gen = all_chars(), all_chars()
     next(y_gen)
@@ -84,11 +99,12 @@ def batch_windows(char_to_index):
             windows += 1
             x_window, y_window = [], []
             steps = 0
-        # done with this batch, yield and restart
-        if windows >= BATCH_SIZE:
-            yield x_batch, y_batch
-            x_batch, y_batch = [], []
-            windows = 0
+            # done with this batch, yield and restart
+            if windows >= BATCH_SIZE:
+                yield list(x_batch), list(y_batch)
+                x_batch.popleft()
+                y_batch.popleft()
+
 
 # *************************************************************************** #
 if __name__ == '__main__':
@@ -96,16 +112,29 @@ if __name__ == '__main__':
     # Process data
 
     char_to_index, index_to_char, vocab_size = index_corpus()
-    batches = batch_windows(char_to_index)
-
 
     # *********************************************************************** #
     # Instantiate and train the model
 
-    model = CharLSTM(EMBED_SIZE, LSTM_SIZE, vocab_size,
-                     BATCH_SIZE, SEQ_LENGTH, LEARN_RATE)
+    if not LOAD_FROM_SAVE:
+        model = CharLSTM(EMBED_SIZE, LSTM_SIZE, vocab_size,
+                         BATCH_SIZE, SEQ_LENGTH, LEARN_RATE)
 
     with tf.Session() as sess:
-        sess.run(model.init_op)
-        model.train(sess, batches, NUM_EPOCHS)
+        # init model
+        if not LOAD_FROM_SAVE:
+            sess.run(model.init_op)
+        else:
+            model = CharLSTM.load_from(sess, MODEL_SAVE_DIR)
+
+        # randomly shuffle order of poems every batch
+        for e in trange(NUM_EPOCHS, desc='Training'):
+            try:
+                perp = model.train(sess, tqdm(list(batch_windows(char_to_index)),
+                                              desc='    Epoch %d' % e))
+                tqdm.write('Ep: %d - Perp: %0.2f' % (e, perp))
+            except KeyboardInterrupt:
+                break
+
+        # write out model
         model.save_to(sess, MODEL_SAVE_DIR)
