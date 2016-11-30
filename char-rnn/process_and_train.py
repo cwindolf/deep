@@ -18,7 +18,7 @@ DATA_DIR = './data/'
 MODEL_SAVE_DIR = './saved_models/'
 
 # Model training params
-NUM_EPOCHS = 10
+NUM_EPOCHS = 2
 EMBED_SIZE = 64
 LSTM_SIZE  = 256
 BATCH_SIZE = 20
@@ -40,7 +40,7 @@ def characters(filename):
     with open(filename, 'r') as file:
         for line in file:
             for char in line:
-                yield char
+                yield char.lower()
 
 
 def all_chars():
@@ -133,6 +133,9 @@ if __name__ == '__main__':
                 perp = model.train(sess, tqdm(list(batch_windows(char_to_index)),
                                               desc='    Epoch %d' % e))
                 tqdm.write('Ep: %d - Perp: %0.2f' % (e, perp))
+                tqdm.write('Sample from this epoch:')
+                tqdm.write('    %s' % model.sample(sess, 100, 'Providence is ',
+                                                   char_to_index, index_to_char))
             except KeyboardInterrupt:
                 break
 

@@ -60,7 +60,6 @@ class CharLSTM():
                                               state_is_tuple=True)
             self.train_init_state = self.cell.zero_state(batch_size, tf.float32)
             self.sample_init_state = self.cell.zero_state(1, tf.float32)
-
             train_outputs, self.train_state = dynamic_rnn(self.cell, dropped_train_embeddings,
                                                           initial_state=self.train_init_state)
             scope.reuse_variables()
@@ -72,12 +71,14 @@ class CharLSTM():
         reshaped_sample_outputs = tf.reshape(sample_outputs, (1, lstm_size))
 
         # final feedforward layer (model logits)
-        ff_weights = weight('ff_weights', (lstm_size, vocab_size))
-        ff_biases = weight('ff_biases', (vocab_size,))
-        train_logits = tf.add(ff_biases,
-                              tf.matmul(reshaped_train_outputs, ff_weights))
-        sample_logits = tf.add(ff_biases,
-                               tf.matmul(reshaped_sample_outputs, ff_weights))
+        with tf.variable_scope('ff') as scope:
+            ff_weights = weight('ff_weights', (lstm_size, vocab_size))
+            ff_biases = weight('ff_biases', (vocab_size,))
+            self.ls = train_logits = tf.add(ff_biases,
+                                  tf.matmul(reshaped_train_outputs, ff_weights))
+            scope.reuse_variables()
+            sample_logits = tf.add(ff_biases,
+                                   tf.matmul(reshaped_sample_outputs, ff_weights))
         self.probs = softmax(sample_logits)
 
         # softmax and loss for training
@@ -85,7 +86,7 @@ class CharLSTM():
                                             [train_logits],
                                             [tf.reshape(self.train_targets, [-1])],
                                             [tf.ones([batch_size * seq_length])])
-        self.loss = tf.reduce_sum(log_perps) / batch_size
+        self.loss = tf.reduce_mean(log_perps) / batch_size
 
         # define trainer, saver, inits
         self.train_op = tf.train.AdamOptimizer(learn_rate).minimize(self.loss)
@@ -130,15 +131,14 @@ class CharLSTM():
         Returns:
             a sampled string of length `n` + len(`seed`)
         '''
-        # Make sure seed ends in a space.
+        # Make sure seed ends in a space & is lowercased
+        seed = seed.lower()
         if not seed[-1] == ' ':
             seed += ' '
         # Prime the LSTM layers by running the seed through
         # (except for the space at the end)
         this_state = sess.run(self.sample_init_state)
         for char in seed[:-1]:
-            # QUESTION: why are they feeding in 1 at a time?
-            #           TF does not like this coming in like this. very bad.
             i = np.full((1, 1), char_to_index[char], dtype=np.int32)
             feed = { self.sample_inputs: i, self.sample_init_state: this_state }
             this_state = sess.run(self.sample_state, feed_dict=feed)
@@ -148,12 +148,10 @@ class CharLSTM():
             i = np.full((1, 1), char_to_index[current_char], dtype=np.int32)
             feed = { self.sample_inputs: i, self.sample_init_state: this_state }
             probs, this_state = sess.run([self.probs, self.sample_state], feed_dict=feed)
-            # might need p = probs[0]
             if current_char == ' ':
                 sample = np.random.choice(self.vocab_size, p=probs[0])
             else:
-                sample = np.argmax(probs)
-
+                sample = np.argmax(probs[0])
             prediction = index_to_char[sample]
             poem += prediction
             current_char = prediction
@@ -171,8 +169,7 @@ class CharLSTM():
         '''
         # save params to remake the graph
         with open(path.join(model_save_dir, self.name + '.defs'), 'wb') as defs:
-            pickle.dump({
-                            'embed_size' : self.embed_size,
+            pickle.dump({   'embed_size' : self.embed_size,
                             'lstm_size'  : self.lstm_size,
                             'vocab_size' : self.vocab_size,
                             'seq_length' : self.seq_length,
@@ -180,8 +177,7 @@ class CharLSTM():
                             'learn_rate' : self.learn_rate,
                             'keep_prob'  : self.kp,
                             'num_layers' : self.num_layers,
-                            'name'       : self.name,
-                        }, defs)
+                            'name'       : self.name         }, defs)
 
         # save variable states
         self.saver.save(sess, path.join(model_save_dir, self.name + '.ckpt'))
