@@ -18,7 +18,7 @@ DATA_DIR = './data/'
 MODEL_SAVE_DIR = './saved_models/'
 
 # Model training params
-NUM_EPOCHS = 2
+NUM_EPOCHS = 20
 EMBED_SIZE = 64
 LSTM_SIZE  = 256
 BATCH_SIZE = 20
