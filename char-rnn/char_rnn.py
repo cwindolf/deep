@@ -2,7 +2,6 @@ from __future__ import print_function, division
 import tensorflow as tf
 from tensorflow.python.ops.nn import rnn_cell, dynamic_rnn, softmax
 import numpy as np
-from tqdm import tqdm
 
 
 # *************************************************************************** #
@@ -51,7 +50,7 @@ class CharLSTM():
 
         # Set up 2-layer LSTM
         # Use dynamic_rnn to run the cells
-        with tf.variable_scope('lstm', reuse=True):
+        with tf.variable_scope('lstm', reuse=None):
             cell = rnn_cell.BasicLSTMCell(lstm_size)
             self.cell = cell = rnn_cell.MultiRNNCell([cell] * num_layers,
                                                      state_is_tuple=True)
@@ -106,7 +105,7 @@ class CharLSTM():
             print('    Epoch %d:' % e)
             epoch_perplexity = 0.0
             this_state = sess.run(self.train_init_state)
-            for i, t in tqdm(batches):
+            for i, t in batches:
                 batch_p, this_state, _ = sess.run([self.loss, self.train_state, self.train_op],
                                                   feed_dict={ self.train_inputs: i,
                                                               self.train_targets: t,

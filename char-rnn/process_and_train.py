@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, generators
 from char_rnn import CharLSTM
 import tensorflow as tf
 import glob
@@ -29,7 +29,8 @@ def characters(filename):
     '''
     with open(filename, 'r') as file:
         for line in file:
-            yield from line
+            for char in line:
+                yield char
 
 
 def all_chars():
@@ -38,7 +39,8 @@ def all_chars():
     by character.
     '''
     for filename in glob.iglob(os.path.join(DATA_DIR, '*.txt')):
-        yield from characters(filename)
+        for char in characters(filename):
+            yield char
 
 
 
