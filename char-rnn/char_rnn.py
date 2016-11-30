@@ -131,10 +131,8 @@ class CharLSTM():
         Returns:
             a sampled string of length `n` + len(`seed`)
         '''
-        # Make sure seed ends in a space & is lowercased
+        # Make sure seed is lowercased
         seed = seed.lower()
-        if not seed[-1] == ' ':
-            seed += ' '
         # Prime the LSTM layers by running the seed through
         # (except for the space at the end)
         this_state = sess.run(self.sample_init_state)
