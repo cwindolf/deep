@@ -8,7 +8,6 @@ from char_rnn import CharLSTM
 import tensorflow as tf
 from random import shuffle
 from tqdm import tqdm, trange
-from collections import deque
 import glob, os
 
 
@@ -83,8 +82,8 @@ def batch_windows(char_to_index):
     Returns:
         generator of pairs of input and target batches
     '''
-    x_batch, x_window = deque([], BATCH_SIZE), []
-    y_batch, y_window = deque([], BATCH_SIZE), []
+    x_batch, x_window = [], []
+    y_batch, y_window = [], []
     windows, steps = 0, 0
     x_gen, y_gen = all_chars(), all_chars()
     next(y_gen)
@@ -99,11 +98,12 @@ def batch_windows(char_to_index):
             windows += 1
             x_window, y_window = [], []
             steps = 0
-            # done with this batch, yield and restart
-            if windows >= BATCH_SIZE:
-                yield list(x_batch), list(y_batch)
-                x_batch.popleft()
-                y_batch.popleft()
+        # done with this batch, yield and restart
+        if windows >= BATCH_SIZE:
+            yield x_batch, y_batch
+            x_batch, y_batch = [], []
+            windows = 0
+
 
 
 # *************************************************************************** #
