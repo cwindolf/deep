@@ -1,22 +1,36 @@
+<<<<<<< HEAD
 from __future__ import print_function, generators
+=======
+'''
+Process the poems
+Train the model
+Save the model
+'''
+from __future__ import print_function
+>>>>>>> 7c355e79b1893aabcceca334fcd3c6ee228d5e28
 from char_rnn import CharLSTM
 import tensorflow as tf
-import glob
-import os
+from random import shuffle
+from tqdm import tqdm, trange
+import glob, os
 
 
 # *************************************************************************** #
 # Constants
 
 DATA_DIR = './data/'
+MODEL_SAVE_DIR = './saved_models/'
 
 # Model training params
-NUM_EPOCHS = 2
+NUM_EPOCHS = 10
 EMBED_SIZE = 64
 LSTM_SIZE  = 256
 BATCH_SIZE = 20
-SEQ_LENGTH = 20
+SEQ_LENGTH = 50
 LEARN_RATE = 1e-4
+
+# Continuing to train old model?
+LOAD_FROM_SAVE = False
 
 # *************************************************************************** #
 # Data processing
@@ -37,11 +51,20 @@ def all_chars():
     '''
     Loop through all files in the whole `DATA_DIR`, yielding character
     by character.
+    Every call runs through poems in a random order.
     '''
+<<<<<<< HEAD
     for filename in glob.iglob(os.path.join(DATA_DIR, '*.txt')):
         for char in characters(filename):
             yield char
 
+=======
+    g = glob.glob(os.path.join(DATA_DIR, '*.txt'))
+    shuffle(g)
+    for filename in list(g):
+        for char in characters(filename):
+            yield char
+>>>>>>> 7c355e79b1893aabcceca334fcd3c6ee228d5e28
 
 
 def index_corpus():
@@ -92,28 +115,37 @@ def batch_windows(char_to_index):
             x_batch, y_batch = [], []
             windows = 0
 
+
+
 # *************************************************************************** #
 if __name__ == '__main__':
     # *********************************************************************** #
     # Process data
 
     char_to_index, index_to_char, vocab_size = index_corpus()
-    batches = batch_windows(char_to_index)
-
 
     # *********************************************************************** #
     # Instantiate and train the model
 
-    model = CharLSTM(EMBED_SIZE, LSTM_SIZE, vocab_size,
-                     BATCH_SIZE, SEQ_LENGTH, LEARN_RATE)
+    if not LOAD_FROM_SAVE:
+        model = CharLSTM(EMBED_SIZE, LSTM_SIZE, vocab_size,
+                         BATCH_SIZE, SEQ_LENGTH, LEARN_RATE)
 
     with tf.Session() as sess:
-        sess.run(model.init_op)
-        model.train(sess, batches, NUM_EPOCHS)
-        sample = model.sample(sess, 200, 'Providence is ',
-                              char_to_index, index_to_char)
+        # init model
+        if not LOAD_FROM_SAVE:
+            sess.run(model.init_op)
+        else:
+            model = CharLSTM.load_from(sess, MODEL_SAVE_DIR)
 
-    # *********************************************************************** #
-    # Test sample...
+        # randomly shuffle order of poems every batch
+        for e in trange(NUM_EPOCHS, desc='Training'):
+            try:
+                perp = model.train(sess, tqdm(list(batch_windows(char_to_index)),
+                                              desc='    Epoch %d' % e))
+                tqdm.write('Ep: %d - Perp: %0.2f' % (e, perp))
+            except KeyboardInterrupt:
+                break
 
-    print(sample)
+        # write out model
+        model.save_to(sess, MODEL_SAVE_DIR)
