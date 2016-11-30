@@ -6,7 +6,6 @@ Save the model
 from __future__ import print_function
 from char_rnn import CharLSTM
 import tensorflow as tf
-from random import shuffle
 from tqdm import tqdm, trange
 import glob, os
 
@@ -50,7 +49,6 @@ def all_chars():
     Every call runs through poems in a random order.
     '''
     g = glob.glob(os.path.join(DATA_DIR, '*.txt'))
-    shuffle(g)
     for filename in list(g):
         for char in characters(filename):
             yield char
