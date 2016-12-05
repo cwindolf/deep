@@ -10,7 +10,6 @@ from __future__ import print_function
 >>>>>>> 7c355e79b1893aabcceca334fcd3c6ee228d5e28
 from char_rnn import CharLSTM
 import tensorflow as tf
-from random import shuffle
 from tqdm import tqdm, trange
 import glob, os
 
@@ -22,7 +21,7 @@ DATA_DIR = './data/'
 MODEL_SAVE_DIR = './saved_models/'
 
 # Model training params
-NUM_EPOCHS = 10
+NUM_EPOCHS = 20
 EMBED_SIZE = 64
 LSTM_SIZE  = 256
 BATCH_SIZE = 20
@@ -44,7 +43,7 @@ def characters(filename):
     with open(filename, 'r') as file:
         for line in file:
             for char in line:
-                yield char
+                yield char.lower()
 
 
 def all_chars():
@@ -60,7 +59,6 @@ def all_chars():
 
 =======
     g = glob.glob(os.path.join(DATA_DIR, '*.txt'))
-    shuffle(g)
     for filename in list(g):
         for char in characters(filename):
             yield char
@@ -144,6 +142,9 @@ if __name__ == '__main__':
                 perp = model.train(sess, tqdm(list(batch_windows(char_to_index)),
                                               desc='    Epoch %d' % e))
                 tqdm.write('Ep: %d - Perp: %0.2f' % (e, perp))
+                tqdm.write('Sample from this epoch:')
+                tqdm.write('    %s' % model.sample(sess, 100, 'Providence is ',
+                                                   char_to_index, index_to_char))
             except KeyboardInterrupt:
                 break
 
