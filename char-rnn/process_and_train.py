@@ -17,7 +17,7 @@ DATA_DIR = './data/'
 MODEL_SAVE_DIR = './saved_models/'
 
 # Model training params
-NUM_EPOCHS = 20
+NUM_EPOCHS = 50
 EMBED_SIZE = 64
 LSTM_SIZE  = 256
 BATCH_SIZE = 20
@@ -39,7 +39,7 @@ def characters(filename):
     with open(filename, 'r') as file:
         for line in file:
             for char in line:
-                yield char.lower()
+                yield char
 
 
 def all_chars():
@@ -115,7 +115,7 @@ if __name__ == '__main__':
 
     if not LOAD_FROM_SAVE:
         model = CharLSTM(EMBED_SIZE, LSTM_SIZE, vocab_size,
-                         BATCH_SIZE, SEQ_LENGTH, LEARN_RATE)
+                         BATCH_SIZE, SEQ_LENGTH, LEARN_RATE, name= "new12716")
 
     with tf.Session() as sess:
         # init model
