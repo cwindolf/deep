@@ -1,13 +1,9 @@
-<<<<<<< HEAD
-from __future__ import print_function, generators
-=======
 '''
 Process the poems
 Train the model
 Save the model
 '''
 from __future__ import print_function
->>>>>>> 7c355e79b1893aabcceca334fcd3c6ee228d5e28
 from char_rnn import CharLSTM
 import tensorflow as tf
 from tqdm import tqdm, trange
@@ -29,7 +25,7 @@ SEQ_LENGTH = 50
 LEARN_RATE = 1e-4
 
 # Continuing to train old model?
-LOAD_FROM_SAVE = False
+LOAD_FROM_SAVE = True
 
 # *************************************************************************** #
 # Data processing
@@ -52,17 +48,9 @@ def all_chars():
     by character.
     Every call runs through poems in a random order.
     '''
-<<<<<<< HEAD
     for filename in glob.iglob(os.path.join(DATA_DIR, '*.txt')):
         for char in characters(filename):
             yield char
-
-=======
-    g = glob.glob(os.path.join(DATA_DIR, '*.txt'))
-    for filename in list(g):
-        for char in characters(filename):
-            yield char
->>>>>>> 7c355e79b1893aabcceca334fcd3c6ee228d5e28
 
 
 def index_corpus():

@@ -1,2 +1,0 @@
-model_checkpoint_path: "char_lstm.ckpt"
-all_model_checkpoint_paths: "char_lstm.ckpt"
