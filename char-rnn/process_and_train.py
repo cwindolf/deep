@@ -1,13 +1,9 @@
-<<<<<<< HEAD
-from __future__ import print_function, generators
-=======
 '''
 Process the poems
 Train the model
 Save the model
 '''
 from __future__ import print_function
->>>>>>> 7c355e79b1893aabcceca334fcd3c6ee228d5e28
 from char_rnn import CharLSTM
 import tensorflow as tf
 from tqdm import tqdm, trange
@@ -21,7 +17,7 @@ DATA_DIR = './data/'
 MODEL_SAVE_DIR = './saved_models/'
 
 # Model training params
-NUM_EPOCHS = 20
+NUM_EPOCHS = 50
 EMBED_SIZE = 64
 LSTM_SIZE  = 256
 BATCH_SIZE = 20
@@ -52,17 +48,9 @@ def all_chars():
     by character.
     Every call runs through poems in a random order.
     '''
-<<<<<<< HEAD
     for filename in glob.iglob(os.path.join(DATA_DIR, '*.txt')):
         for char in characters(filename):
             yield char
-
-=======
-    g = glob.glob(os.path.join(DATA_DIR, '*.txt'))
-    for filename in list(g):
-        for char in characters(filename):
-            yield char
->>>>>>> 7c355e79b1893aabcceca334fcd3c6ee228d5e28
 
 
 def index_corpus():
@@ -127,7 +115,7 @@ if __name__ == '__main__':
 
     if not LOAD_FROM_SAVE:
         model = CharLSTM(EMBED_SIZE, LSTM_SIZE, vocab_size,
-                         BATCH_SIZE, SEQ_LENGTH, LEARN_RATE)
+                         BATCH_SIZE, SEQ_LENGTH, LEARN_RATE, name= "new12716")
 
     with tf.Session() as sess:
         # init model

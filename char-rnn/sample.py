@@ -7,6 +7,7 @@ from char_rnn import CharLSTM
 from process_and_train import index_corpus
 import tensorflow as tf
 import sys
+from numpy.random import randint
 
 
 MODEL_SAVE_DIR = './saved_models/'
@@ -38,6 +39,23 @@ if __name__ == '__main__':
         # do the loading
         model = CharLSTM.load_from(sess, MODEL_SAVE_DIR)
         # do the sampling
-        sample = model.sample(sess, 200, seed, char_to_index, index_to_char)
-
-    print(sample)
+        sample = model.sample(sess, 600, seed, char_to_index, index_to_char)
+        while sample[-1] != " " or sample[-3:-1]=="the":
+            sample += model.sample(sess, 1, sample[-1], char_to_index, index_to_char)
+    print("                                                                                ")
+    print("********************************************************************************")
+    print("                                                                                ")
+    print("********************************************************************************")
+    print("                                                                                ")
+    print("********************************************************************************")
+    print("                                                                                ")
+    rand = randint(1, 15)
+    s = 0
+    st = ""
+    while s +rand <len(sample.split()):
+        for i in range(rand):
+            st+= " " + sample.split()[s+i]
+        print(st)
+        st = " "
+        s+=rand
+        rand = randint(1, 15)
