@@ -17,7 +17,7 @@ DATA_DIR = './data/'
 MODEL_SAVE_DIR = './saved_models/'
 
 # Model training params
-NUM_EPOCHS = 50
+NUM_EPOCHS = 150
 EMBED_SIZE = 64
 LSTM_SIZE  = 256
 BATCH_SIZE = 20
@@ -115,7 +115,7 @@ if __name__ == '__main__':
 
     if not LOAD_FROM_SAVE:
         model = CharLSTM(EMBED_SIZE, LSTM_SIZE, vocab_size,
-                         BATCH_SIZE, SEQ_LENGTH, LEARN_RATE, name= "new12716")
+                         BATCH_SIZE, SEQ_LENGTH, LEARN_RATE, name= "new127162")
 
     with tf.Session() as sess:
         # init model
