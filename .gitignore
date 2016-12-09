@@ -1,3 +1,6 @@
+im2txt
+bazel*
 *.pyc
 *.pyo
-gsv_api_env.py
+*env*
+*.jpg
