@@ -42,13 +42,6 @@ if __name__ == '__main__':
         sample = model.sample(sess, 600, seed, char_to_index, index_to_char)
         while sample[-1] != " " or sample[-3:-1]=="the":
             sample += model.sample(sess, 1, sample[-1], char_to_index, index_to_char)
-    print("                                                                                ")
-    print("********************************************************************************")
-    print("                                                                                ")
-    print("********************************************************************************")
-    print("                                                                                ")
-    print("********************************************************************************")
-    print("                                                                                ")
     rand = randint(1, 15)
     s = 0
     st = ""

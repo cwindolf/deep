@@ -4,7 +4,7 @@ Train the model
 Save the model
 '''
 from __future__ import print_function
-from char_rnn.char_rnn import CharLSTM
+from char_rnn import CharLSTM
 import tensorflow as tf
 from tqdm import tqdm, trange
 import glob, os
@@ -13,11 +13,11 @@ import glob, os
 # *************************************************************************** #
 # Constants
 
-DATA_DIR = './data/'
-MODEL_SAVE_DIR = './saved_models/'
+DATA_DIR = './char_rnn/data/'
+MODEL_SAVE_DIR = './char_rnn/saved_models/'
 
 # Model training params
-NUM_EPOCHS = 150
+NUM_EPOCHS = 50
 EMBED_SIZE = 64
 LSTM_SIZE  = 256
 BATCH_SIZE = 20
@@ -25,7 +25,7 @@ SEQ_LENGTH = 50
 LEARN_RATE = 1e-4
 
 # Continuing to train old model?
-LOAD_FROM_SAVE = True
+LOAD_FROM_SAVE = False
 
 # *************************************************************************** #
 # Data processing
@@ -132,7 +132,7 @@ if __name__ == '__main__':
                                               desc='    Epoch %d' % e))
                 tqdm.write('Ep: %d - Perp: %0.2f' % (e, perp))
                 tqdm.write('Sample from this epoch:')
-                tqdm.write('    %s' % model.sample(sess, 100, 'Providence is ',
+                tqdm.write('    %s' % model.sample(sess, 100, 'the house on the corner was ',
                                                    char_to_index, index_to_char))
             except KeyboardInterrupt:
                 break

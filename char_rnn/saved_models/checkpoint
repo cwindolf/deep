@@ -1,2 +1,2 @@
-model_checkpoint_path: "new12716.ckpt"
-all_model_checkpoint_paths: "new12716.ckpt"
+model_checkpoint_path: "cases.ckpt"
+all_model_checkpoint_paths: "cases.ckpt"
