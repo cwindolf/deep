@@ -4,11 +4,7 @@ Train the model
 Save the model
 '''
 from __future__ import print_function
-<<<<<<< HEAD:char_rnn/process_and_train.py
 from char_rnn.char_rnn import CharLSTM
-=======
-from char_rnn import CharLSTM
->>>>>>> d4ec48fa8ae5b800ece9c4bed9ad7b74b2b748c4:char-rnn/process_and_train.py
 import tensorflow as tf
 from tqdm import tqdm, trange
 import glob, os
@@ -53,7 +49,11 @@ def all_chars(data_dir):
     by character.
     Every call runs through poems in a random order.
     '''
+<<<<<<< HEAD:char_rnn/process_and_train.py
     for filename in glob.iglob(os.path.join(data_dir, '*.txt')):
+=======
+    for filename in glob.iglob(os.path.join(DATA_DIR, '*.txt')):
+>>>>>>> d4ec48fa8ae5b800ece9c4bed9ad7b74b2b748c4:char-rnn/process_and_train.py
         for char in characters(filename):
             yield char
 
