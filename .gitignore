@@ -1,1 +1,5 @@
+im2txt
 bazel*
+*.pyc
+*.pyo
+*env*
