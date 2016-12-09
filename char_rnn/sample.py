@@ -10,7 +10,7 @@ import sys
 from numpy.random import randint
 
 
-MODEL_SAVE_DIR = './saved_models/'
+MODEL_SAVE_DIR = './char_rnn/saved_models/'
 
 
 # *************************************************************************** #
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     # process data cuz we need the index dicts
     # TODO: future versions could cache these
 
-    char_to_index, index_to_char, _ = index_corpus()
+    char_to_index, index_to_char, _ = index_corpus('./char_rnn/data/')
 
     # *********************************************************************** #
     # load model and sample
@@ -37,18 +37,19 @@ if __name__ == '__main__':
 
     with tf.Session() as sess:
         # do the loading
-        model = CharLSTM.load_from(sess, MODEL_SAVE_DIR)
+        model = CharLSTM.load_from(sess, MODEL_SAVE_DIR, name='cases')
         # do the sampling
         sample = model.sample(sess, 600, seed, char_to_index, index_to_char)
-        while sample[-1] != " " or sample[-3:-1]=="the":
-            sample += model.sample(sess, 1, sample[-1], char_to_index, index_to_char)
-    rand = randint(1, 15)
-    s = 0
-    st = ""
-    while s +rand <len(sample.split()):
-        for i in range(rand):
-            st+= " " + sample.split()[s+i]
-        print(st)
-        st = " "
-        s+=rand
-        rand = randint(1, 15)
+    print(sample)
+    #     while sample[-1] != " " or sample[-3:-1]=="the":
+    #         sample += model.sample(sess, 1, sample[-1], char_to_index, index_to_char)
+    # rand = randint(1, 15)
+    # s = 0
+    # st = ""
+    # while s +rand <len(sample.split()):
+    #     for i in range(rand):
+    #         st+= " " + sample.split()[s+i]
+    #     print(st)
+    #     st = " "
+    #     s+=rand
+    #     rand = randint(1, 15)

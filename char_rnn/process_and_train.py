@@ -6,7 +6,6 @@ Save the model
 from __future__ import print_function
 from char_rnn import CharLSTM
 import tensorflow as tf
-from tqdm import tqdm, trange
 import glob, os
 
 
@@ -106,6 +105,7 @@ def batch_windows(char_to_index, data_dir):
 
 # *************************************************************************** #
 if __name__ == '__main__':
+    from tqdm import tqdm, trange
     # *********************************************************************** #
     # Process data
 
