@@ -40,6 +40,7 @@ def characters(filename):
         for line in file:
             for char in line:
                 yield char
+            yield '\n'
 
 
 def all_chars():
@@ -115,7 +116,7 @@ if __name__ == '__main__':
 
     if not LOAD_FROM_SAVE:
         model = CharLSTM(EMBED_SIZE, LSTM_SIZE, vocab_size,
-                         BATCH_SIZE, SEQ_LENGTH, LEARN_RATE, name= "new12716")
+                         BATCH_SIZE, SEQ_LENGTH, LEARN_RATE, name= "cases")
 
     with tf.Session() as sess:
         # init model
