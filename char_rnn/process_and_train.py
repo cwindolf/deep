@@ -1,14 +1,10 @@
-<<<<<<< HEAD
-from __future__ import print_function, generators
-=======
 '''
 Process the poems
 Train the model
 Save the model
 '''
 from __future__ import print_function
->>>>>>> 7c355e79b1893aabcceca334fcd3c6ee228d5e28
-from char_rnn import CharLSTM
+from char_rnn.char_rnn import CharLSTM
 import tensorflow as tf
 from tqdm import tqdm, trange
 import glob, os
@@ -43,29 +39,22 @@ def characters(filename):
     with open(filename, 'r') as file:
         for line in file:
             for char in line:
-                yield char.lower()
+                yield char
+            yield '\n'
 
 
-def all_chars():
+def all_chars(data_dir):
     '''
-    Loop through all files in the whole `DATA_DIR`, yielding character
+    Loop through all files in the whole `data_dir`, yielding character
     by character.
     Every call runs through poems in a random order.
     '''
-<<<<<<< HEAD
-    for filename in glob.iglob(os.path.join(DATA_DIR, '*.txt')):
+    for filename in glob.iglob(os.path.join(data_dir, '*.txt')):
         for char in characters(filename):
             yield char
 
-=======
-    g = glob.glob(os.path.join(DATA_DIR, '*.txt'))
-    for filename in list(g):
-        for char in characters(filename):
-            yield char
->>>>>>> 7c355e79b1893aabcceca334fcd3c6ee228d5e28
 
-
-def index_corpus():
+def index_corpus(data_dir):
     '''
     Index all characters into integers, and also produce the reverse
     mapping and total number of unique characters.
@@ -74,16 +63,19 @@ def index_corpus():
         @char_to_index: dict mapping characters to their index numbers
         @index_to_char: dict with reverse mapping
     '''
+    print(data_dir)
     n, char_to_index, index_to_char = 0, {}, {}
-    for char in all_chars():
+    for char in all_chars(data_dir):
         if char not in char_to_index:
             char_to_index[char] = n
             index_to_char[n] = char
             n += 1
+    print(n)
+    print(sorted(list(char_to_index.keys())))
     return char_to_index, index_to_char, n
 
 
-def batch_windows(char_to_index):
+def batch_windows(char_to_index, data_dir):
     '''
     Batch the data into windows.
     Arguments:
@@ -94,7 +86,7 @@ def batch_windows(char_to_index):
     x_batch, x_window = [], []
     y_batch, y_window = [], []
     windows, steps = 0, 0
-    x_gen, y_gen = all_chars(), all_chars()
+    x_gen, y_gen = all_chars(data_dir), all_chars(data_dir)
     next(y_gen)
     for x_char, y_char in zip(x_gen, y_gen):
         x_window.append(char_to_index[x_char])
@@ -120,7 +112,7 @@ if __name__ == '__main__':
     # *********************************************************************** #
     # Process data
 
-    char_to_index, index_to_char, vocab_size = index_corpus()
+    char_to_index, index_to_char, vocab_size = index_corpus(DATA_DIR)
 
     # *********************************************************************** #
     # Instantiate and train the model
@@ -139,7 +131,7 @@ if __name__ == '__main__':
         # randomly shuffle order of poems every batch
         for e in trange(NUM_EPOCHS, desc='Training'):
             try:
-                perp = model.train(sess, tqdm(list(batch_windows(char_to_index)),
+                perp = model.train(sess, tqdm(list(batch_windows(char_to_index, DATA_DIR)),
                                               desc='    Epoch %d' % e))
                 tqdm.write('Ep: %d - Perp: %0.2f' % (e, perp))
                 tqdm.write('Sample from this epoch:')
