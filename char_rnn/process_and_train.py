@@ -49,11 +49,7 @@ def all_chars(data_dir):
     by character.
     Every call runs through poems in a random order.
     '''
-<<<<<<< HEAD:char_rnn/process_and_train.py
     for filename in glob.iglob(os.path.join(data_dir, '*.txt')):
-=======
-    for filename in glob.iglob(os.path.join(DATA_DIR, '*.txt')):
->>>>>>> d4ec48fa8ae5b800ece9c4bed9ad7b74b2b748c4:char-rnn/process_and_train.py
         for char in characters(filename):
             yield char
 
