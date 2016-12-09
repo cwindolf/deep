@@ -4,7 +4,11 @@ Train the model
 Save the model
 '''
 from __future__ import print_function
+<<<<<<< HEAD:char_rnn/process_and_train.py
 from char_rnn.char_rnn import CharLSTM
+=======
+from char_rnn import CharLSTM
+>>>>>>> d4ec48fa8ae5b800ece9c4bed9ad7b74b2b748c4:char-rnn/process_and_train.py
 import tensorflow as tf
 from tqdm import tqdm, trange
 import glob, os
@@ -17,7 +21,7 @@ DATA_DIR = './data/'
 MODEL_SAVE_DIR = './saved_models/'
 
 # Model training params
-NUM_EPOCHS = 20
+NUM_EPOCHS = 150
 EMBED_SIZE = 64
 LSTM_SIZE  = 256
 BATCH_SIZE = 20
@@ -119,7 +123,7 @@ if __name__ == '__main__':
 
     if not LOAD_FROM_SAVE:
         model = CharLSTM(EMBED_SIZE, LSTM_SIZE, vocab_size,
-                         BATCH_SIZE, SEQ_LENGTH, LEARN_RATE)
+                         BATCH_SIZE, SEQ_LENGTH, LEARN_RATE, name= "new127162")
 
     with tf.Session() as sess:
         # init model
